@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuale RetroAvia Diamond</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Press+Start+2P&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --accent-gbc: #d946ef; /* Fuchsia Neon */
+            --accent-gba: #f97316; /* Orange Neon */
+            --accent-sp: #3b82f6;  /* Blue Neon */
+            --bg-dark: #050505;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --crt-flicker: 0.02;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: #e5e7eb;
+            overflow-x: hidden;
+            opacity: 0; /* For boot animation */
+            animation: crtOn 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; /* Turn on effect */
+        }
+
+        /* --- CRT TURN ON ANIMATION --- */
+        @keyframes crtOn {
+            0% { opacity: 0; transform: scaleY(0.005) scaleX(0); filter: brightness(5); }
+            50% { opacity: 1; transform: scaleY(0.005) scaleX(1); }
+            100% { opacity: 1; transform: scaleY(1) scaleX(1); filter: brightness(1); }
+        }
+
+        /* --- MOVING CYBER GRID BACKGROUND --- */
+        .cyber-grid {
+            position: fixed; top: 0; left: 0; width: 200vw; height: 200vh;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+            animation: gridMove 20s linear infinite;
+            pointer-events: none; z-index: -1;
+            mask-image: linear-gradient(to bottom, transparent 5%, black 40%);
+        }
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(40px) translateZ(-200px); }
+        }
+
+        /* --- SCANLINES & VIGNETTE --- */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none; z-index: 50; opacity: 0.6;
+        }
+        .vignette {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle, transparent 60%, black 100%);
+            pointer-events: none; z-index: 49;
+        }
+
+        .font-retro { font-family: 'Press Start 2P', cursive; }
+        .font-tech { font-family: 'Rajdhani', sans-serif; letter-spacing: 0.1em; }
+        
+        /* --- GLASSMOPHISM CARDS (Advanced) --- */
+        .glass-panel {
+            background: rgba(15, 15, 15, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255,255,255,0.02);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+        .glass-panel::before { /* Shine effect */
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
+            transform: skewX(-25deg); transition: 0.5s;
+        }
+        .glass-panel:hover::before { left: 150%; transition: 0.7s; }
+        .glass-panel:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 15px var(--accent-color, rgba(255,255,255,0.1));
+        }
+
+        /* --- INTERACTIVE CONTROLLER BUTTONS --- */
+        .control-group { 
+            display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; 
+            padding: 4px 8px; border-radius: 8px; transition: background 0.3s;
+        }
+        .control-group:hover { background: rgba(255,255,255,0.05); }
+        .control-group:hover .gb-btn, .control-group:hover .gb-pill, .control-group:hover .sp-btn-small {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 #000; /* Pressed effect */
+            filter: brightness(1.2);
+        }
+        
+        .gb-btn {
+            width: 34px; height: 34px; background: #dc2626; border-radius: 50%;
+            box-shadow: 0 4px 0 #991b1b, 0 6px 10px rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px; color: rgba(0,0,0,0.3); position: relative;
+            transition: all 0.1s;
+        }
+        .gb-btn::after { content: attr(data-label); position: absolute; bottom: -22px; font-size: 10px; color: #888; font-weight: 700; }
+
+        .gb-pill {
+            width: 48px; height: 16px; background: #374151; border-radius: 20px;
+            transform: rotate(-15deg); box-shadow: 1px 3px 0 #111827; border: 1px solid #4b5563;
+            display: inline-block; margin: 0 6px; position: relative; transition: all 0.1s;
+        }
+        .gb-pill-label {
+            position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%) rotate(15deg);
+            font-size: 9px; color: #888; white-space: nowrap; font-weight: 700;
+        }
+
+        .sp-btn-small {
+            width: 24px; height: 24px; background: #1f2937; border-radius: 50%;
+            border: 1px solid #4b5563; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 10px; color: #9ca3af; box-shadow: 0 2px 0 #000; font-weight: bold; transition: all 0.1s;
+        }
+
+        /* --- GLITCH TEXT EFFECT --- */
+        .glitch-wrapper { position: relative; display: inline-block; }
+        .glitch-wrapper:hover { animation: glitch-anim 0.3s infinite; }
+        @keyframes glitch-anim {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        /* --- TABS --- */
+        .tab-container { perspective: 1000px; }
+        .console-tab {
+            position: relative; background: #111;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.5; border-bottom: 2px solid transparent;
+        }
+        .console-tab:hover { opacity: 0.8; transform: translateY(-2px); }
+        .console-tab.active { 
+            opacity: 1; transform: scale(1.1) translateY(-4px); z-index: 10; 
+            background: #1a1a1a; box-shadow: 0 0 20px var(--glow-color);
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        /* --- DYNAMIC THEMES --- */
+        .theme-gbc { --accent-color: var(--accent-gbc); --glow-color: rgba(217, 70, 239, 0.4); }
+        .theme-gba { --accent-color: var(--accent-gba); --glow-color: rgba(249, 115, 22, 0.4); }
+        .theme-sp { --accent-color: var(--accent-sp); --glow-color: rgba(59, 130, 246, 0.4); }
+
+        .theme-gbc .accent-text { color: var(--accent-gbc); }
+        .theme-gbc .console-tab.active { color: var(--accent-gbc); border-bottom-color: var(--accent-gbc); }
+        
+        .theme-gba .accent-text { color: var(--accent-gba); }
+        .theme-gba .console-tab.active { color: var(--accent-gba); border-bottom-color: var(--accent-gba); }
+
+        .theme-sp .accent-text { color: var(--accent-sp); }
+        .theme-sp .console-tab.active { color: var(--accent-sp); border-bottom-color: var(--accent-sp); }
+
+        /* --- SECTION ANIMATION --- */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .content-section.active { display: block; animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .content-section { display: none; }
+
+        /* --- AI TERMINAL --- */
+        .terminal-window {
+            background-color: #080808; border: 1px solid #333; border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+        .ai-msg { color: #d8b4fe; margin-bottom: 10px; border-left: 2px solid #d8b4fe; padding-left: 10px; }
+        .user-msg { color: #fcd34d; margin-bottom: 10px; text-align: right; border-right: 2px solid #fcd34d; padding-right: 10px; }
+
+        @media print {
+            .scanlines, .vignette, .cyber-grid, .tab-container, .no-print, #ai-assistant-section { display: none !important; }
+            body { background: white; color: black; animation: none; opacity: 1; }
+            .glass-panel { background: white; border: 1px solid #000; box-shadow: none; color: black; break-inside: avoid; }
+            .gb-btn, .gb-pill, .sp-btn-small { border: 1px solid #000; background: white; color: black; box-shadow: none; }
+            h1, h2, h3 { color: black !important; text-shadow: none !important; }
+        }
+    </style>
+    <script type="importmap">
+      { "imports": { "@google/generative-ai": "https://esm.run/@google/generative-ai" } }
+    </script>
+</head>
+<body class="min-h-screen flex flex-col items-center pb-32 theme-gbc transition-colors duration-700" id="body-app">
+
+    <div class="cyber-grid"></div>
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+
+    <!-- TABS NAVIGATION -->
+    <div class="w-full max-w-4xl mt-16 px-4 flex justify-center items-end space-x-[-15px] tab-container relative z-40">
+        <button onclick="switchConsole('gbc')" id="tab-gbc" class="console-tab active bg-gray-900 text-gray-500 py-4 px-10 w-36 font-bold text-sm tracking-widest uppercase cursor-pointer">GBC</button>
+        <button onclick="switchConsole('gba')" id="tab-gba" class="console-tab bg-gray-900 text-gray-500 py-4 px-10 w-36 font-bold text-sm tracking-widest uppercase cursor-pointer">GBA</button>
+        <button onclick="switchConsole('sp')" id="tab-sp" class="console-tab bg-gray-900 text-gray-500 py-4 px-10 w-36 font-bold text-sm tracking-widest uppercase cursor-pointer">SP</button>
+    </div>
+
+    <!-- HEADER HERO -->
+    <header class="w-full max-w-5xl mx-auto mt-8 mb-12 text-center px-4 relative z-10">
+        <div class="glitch-wrapper cursor-default">
+            <h1 class="text-5xl md:text-7xl font-retro text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)] tracking-tighter">
+                RETRO-AVIA
+            </h1>
+        </div>
+        <div class="h-[2px] w-48 mx-auto mt-4 rounded-full bg-gradient-to-r from-transparent via-current to-transparent accent-text opacity-80 animate-pulse"></div>
+        <div class="mt-6 inline-block px-6 py-2 rounded-full border border-gray-800 bg-black/60 backdrop-blur-md shadow-2xl">
+            <p class="text-sm md:text-lg font-tech tracking-[0.3em] text-gray-300 uppercase">
+                SYSTEM: <span id="model-name" class="accent-text font-bold glow-text transition-all duration-300">GAME BOY COLOR</span>
+            </p>
+        </div>
+    </header>
+
+    <main class="w-full max-w-4xl px-4 grid gap-16 relative z-10">
+
+        <!-- ================= GBC CONTENT ================= -->
+        <div id="content-gbc" class="content-section active space-y-12">
+            
+            <!-- POWER WARNING (Pro Tech Tip) -->
+            <div class="glass-panel p-5 rounded-lg border-l-4 border-yellow-500 flex items-start gap-5">
+                <div class="bg-yellow-500/10 p-3 rounded-full"><i class="fas fa-bolt text-yellow-500 text-xl"></i></div>
+                <div>
+                    <h4 class="font-bold text-yellow-400 text-sm font-tech uppercase tracking-wider mb-1">⚡ Power Management Pro Tip</h4>
+                    <p class="text-xs text-gray-300 leading-relaxed">
+                        Le mod IPS+LED richiedono picchi di <strong>0.5A - 0.8A</strong>. Le batterie alcaline standard crollano sotto questo carico causando sfarfallii o spegnimenti.
+                        <br><span class="text-white font-bold">Soluzione:</span> Usa esclusivamente batterie <strong>Litio 1.5V costanti</strong> o Ni-MH "Pro" (2450mAh+).
+                    </p>
+                </div>
+            </div>
+
+            <!-- LED SECTION -->
+            <section class="pl-4 md:pl-8 border-l-2 border-purple-900/50">
+                <h2 class="text-3xl font-bold text-white mb-8 font-tech flex items-center">
+                    <span class="text-purple-500 mr-3">01 //</span> LED MATRIX GBC
+                </h2>
+                
+                <!-- Hero Activation Card -->
+                <div class="glass-panel p-8 rounded-2xl mb-8 flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-purple-900/20 to-transparent">
+                    <div>
+                        <h3 class="font-bold text-xl text-white mb-2">Menu Configurazione</h3>
+                        <p class="text-sm text-gray-400 max-w-xs">Attiva la modalità modifica per personalizzare colori e animazioni.</p>
+                    </div>
+                    <div class="mt-4 md:mt-0 flex flex-col items-center">
+                        <div class="control-group bg-black/40 px-8 py-5 rounded-xl border border-white/10 shadow-inner">
+                            <div class="gb-btn" data-label="A">A</div> <span class="text-gray-500 mx-3 text-lg font-thin">+</span> <div class="gb-btn" data-label="B">B</div>
+                        </div>
+                        <span class="text-[10px] text-purple-400 mt-3 font-mono tracking-widest uppercase">TIENI PREMUTO 3 SECONDI</span>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Auto Modes -->
+                    <div class="glass-panel p-6 rounded-xl relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/20 rounded-full blur-2xl group-hover:bg-purple-500/30 transition duration-700"></div>
+                        <h4 class="text-purple-400 font-bold mb-4 border-b border-gray-700 pb-3 flex items-center gap-2">
+                            <i class="fas fa-magic"></i> Modi Automatici
+                        </h4>
+                        <div class="space-y-6 text-sm text-gray-300">
+                            <div>
+                                <strong class="text-white text-xs uppercase tracking-wide block mb-1">Loop (Arcobaleno)</strong>
+                                <p class="text-[10px] text-gray-500 mb-2">Ciclo continuo RGB fluido.</p>
+                                <div class="flex justify-between items-center bg-black/20 p-2 rounded hover:bg-black/40 transition">
+                                    <span class="text-xs font-mono">Luminosità</span>
+                                    <div class="control-group scale-90 origin-right"><div class="gb-pill"><span class="gb-pill-label">START</span></div> + <div class="gb-btn" data-label="A">A</div></div>
+                                </div>
+                            </div>
+                            <div>
+                                <strong class="text-white text-xs uppercase tracking-wide block mb-1">Breathing (Respiro)</strong>
+                                <p class="text-[10px] text-gray-500 mb-2">Fade in/out elegante su un colore fisso.</p>
+                                <div class="flex justify-between items-center bg-black/20 p-2 rounded hover:bg-black/40 transition">
+                                    <span class="text-xs font-mono">Tinta</span>
+                                    <div class="control-group scale-75 origin-right"><div class="gb-pill"><span class="gb-pill-label">START</span></div> <div class="gb-pill"><span class="gb-pill-label">SEL</span></div> + <div class="gb-btn" data-label="A">A</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Mode -->
+                    <div class="glass-panel p-6 rounded-xl border border-yellow-500/20 bg-gradient-to-b from-yellow-900/10 to-transparent">
+                        <h4 class="text-yellow-400 font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-edit"></i> Custom Mode (Manuale)
+                        </h4>
+                        
+                        <ol class="text-xs space-y-5 list-none text-gray-300 relative">
+                            <!-- Vertical line for list -->
+                            <div class="absolute left-[7px] top-2 bottom-2 w-[1px] bg-gray-700"></div>
+                            
+                            <li class="pl-6 relative">
+                                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center text-[8px]">1</div>
+                                <strong class="text-gray-200">Seleziona Tasto</strong>
+                                <div class="mt-1"><span class="control-group scale-75 origin-left"><div class="gb-pill"><span class="gb-pill-label">SEL</span></div> + <div class="gb-btn" data-label="A">A</div></span></div>
+                                <div class="text-[10px] text-gray-500 mt-1">Il LED selezionato lampeggerà.</div>
+                            </li>
+                            <li class="pl-6 relative">
+                                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-gray-800 border border-gray-600 flex items-center justify-center text-[8px]">2</div>
+                                <strong class="text-gray-200">Assegna Colore</strong>
+                                <div class="mt-1"><span class="control-group scale-75 origin-left"><div class="gb-pill"><span class="gb-pill-label">START</span></div> + <div class="gb-btn" data-label="A">A</div></span></div>
+                            </li>
+                            <li class="pl-6 relative">
+                                <div class="absolute left-0 top-1 w-4 h-4 rounded-full bg-red-900 border border-red-500 flex items-center justify-center text-[8px] text-red-200">!</div>
+                                <strong class="text-red-400 uppercase tracking-wider">Salva ed Esci</strong>
+                                <div class="mt-1"><span class="control-group scale-75 origin-left"><div class="gb-pill"><span class="gb-pill-label">SEL</span></div> + <div class="gb-pill"><span class="gb-pill-label">L</span></div> + <div class="gb-btn" data-label="A">A</div></span></div>
+                                <div class="text-[10px] text-red-300/70 mt-1">Passaggio obbligatorio per non perdere i dati.</div>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <!-- IPS SECTION -->
+            <section class="pl-4 md:pl-8 border-l-2 border-cyan-900/50">
+                <h2 class="text-3xl font-bold text-white mb-8 font-tech flex items-center">
+                    <span class="text-cyan-500 mr-3">02 //</span> IPS DISPLAY PRO
+                </h2>
+                
+                <div class="glass-panel p-8 rounded-xl">
+                    <div class="flex flex-col lg:flex-row gap-10">
+                        <!-- OSD Controls -->
+                        <div class="flex-1">
+                            <h3 class="text-cyan-400 font-bold mb-4 text-lg border-b border-gray-700 pb-2">Controlli OSD</h3>
+                            
+                            <div class="bg-cyan-900/10 p-4 rounded-lg border border-cyan-500/20 mb-6">
+                                <strong class="text-white text-xs uppercase tracking-wider block mb-2">Accesso al Menu</strong>
+                                <div class="flex items-center justify-between">
+                                    <div class="control-group"><div class="gb-pill"><span class="gb-pill-label">START</span></div> + <div class="gb-pill"><span class="gb-pill-label">SEL</span></div></div>
+                                    <span class="text-xs font-mono text-cyan-300 bg-cyan-900/40 px-2 py-1 rounded">HOLD 3 SEC</span>
+                                </div>
+                            </div>
+
+                            <ul class="text-xs text-gray-400 space-y-3 pl-2">
+                                <li class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-gray-800 flex items-center justify-center font-bold text-white">SEL</span> <span>Scende alla voce successiva.</span></li>
+                                <li class="flex items-center gap-3"><span class="w-6 h-6 rounded bg-red-900 flex items-center justify-center font-bold text-white">A</span> <span>Modifica il valore/impostazione.</span></li>
+                                <li class="flex items-center gap-3"><span class="w-16 h-6 rounded bg-gray-800 flex items-center justify-center font-bold text-white text-[9px]">START+SEL</span> <span>Esce e Salva.</span></li>
+                            </ul>
+                        </div>
+
+                        <!-- Technical Glossary -->
+                        <div class="flex-1 bg-black/40 p-6 rounded-xl border border-white/5 relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl"></div>
+                            <h3 class="text-white font-bold mb-4 text-sm uppercase flex items-center gap-2"><i class="fas fa-book"></i> Glossario Tecnico</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex items-baseline gap-2 mb-1">
+                                        <strong class="text-yellow-400 text-xs font-mono">FRM (Frame Blend)</strong>
+                                        <span class="text-[9px] bg-green-900 text-green-300 px-1 rounded">ON Recommended</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 leading-snug">
+                                        I vecchi LCD avevano una "scia" naturale. I nuovi IPS sono troppo veloci e rendono invisibili alcuni effetti di trasparenza (ombre). Attivando FRM, l'IPS simula quella scia per ripristinare la grafica corretta.
+                                    </p>
+                                </div>
+                                <div class="w-full h-[1px] bg-gray-800"></div>
+                                <div>
+                                    <div class="flex items-baseline gap-2 mb-1">
+                                        <strong class="text-yellow-400 text-xs font-mono">DSP (Display Effect)</strong>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 leading-snug">
+                                        Per un look autentico, usa la modalità <strong>Pixel Grid</strong>. Riduce leggermente la luminosità percepita ma nasconde i pixel troppo "nitidi" dell'emulazione.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= GBA CONTENT ================= -->
+        <div id="content-gba" class="content-section hidden space-y-12">
+            
+            <div class="glass-panel p-4 rounded-lg border-l-4 border-orange-500 bg-orange-900/5">
+                <h4 class="font-bold text-orange-400 text-sm font-tech uppercase mb-1">Touch vs Solder</h4>
+                <p class="text-xs text-gray-400">
+                    Il kit IPS 3.0 GBA funziona interamente col <strong>Touch</strong> (nascosto sotto lo schermo). Se il modder ha saldato i fili (L, R, Select), puoi usare i tasti fisici per l'OSD. Questo manuale copre entrambi i metodi.
+                </p>
+            </div>
+
+            <!-- LED SECTION -->
+            <section class="pl-4 md:pl-8 border-l-2 border-orange-900/50">
+                <h2 class="text-3xl font-bold text-white mb-8 font-tech flex items-center">
+                    <span class="text-orange-500 mr-3">01 //</span> LED SYSTEM GBA
+                </h2>
+                
+                <div class="glass-panel p-6 rounded-xl mb-6 flex justify-between items-center border-l-4 border-orange-500 shadow-[0_0_30px_rgba(249,115,22,0.1)]">
+                    <div>
+                        <h3 class="font-bold text-xl text-white">Master Switch</h3>
+                        <p class="text-xs text-gray-400">Accendi/Spegni il sistema LED completamente.</p>
+                    </div>
+                    <div class="control-group bg-black/50 p-3 rounded-lg border border-orange-500/30">
+                        <div class="gb-btn" data-label="A">A</div> <span class="text-xs text-gray-500 mx-2">+</span> <div class="gb-btn" data-label="B">B</div>
+                        <span class="ml-3 text-[10px] text-orange-400 font-mono tracking-wider">HOLD 2 SEC</span>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="glass-panel p-5 rounded-lg hover:bg-white/5 transition duration-300">
+                        <h4 class="text-orange-400 font-bold mb-4 text-sm uppercase tracking-wide">Cambio Colore & Pattern</h4>
+                        <p class="text-[10px] text-gray-500 mb-4 h-8">Cicla tra: Fisso -> Respiro -> Arcobaleno -> Off per singola zona.</p>
+                        <div class="flex items-center gap-2 bg-black/30 p-3 rounded border border-white/5">
+                            <span class="text-[9px] text-gray-500 font-bold">HOLD</span> 
+                            <div class="control-group scale-90"><div class="gb-pill"><span class="gb-pill-label">START</span></div></div>
+                            <span class="text-[9px] text-gray-500 mx-1">+ CLICK</span> 
+                            <div class="control-group scale-75"><div class="gb-btn" data-label="A">A</div></div>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-lg hover:bg-white/5 transition duration-300">
+                        <h4 class="text-orange-400 font-bold mb-4 text-sm uppercase tracking-wide">Luminosità LED</h4>
+                        <p class="text-[10px] text-gray-500 mb-4 h-8">4 Livelli di intensità. Imposta al minimo per risparmiare batteria.</p>
+                        <div class="flex items-center gap-2 bg-black/30 p-3 rounded border border-white/5">
+                            <span class="text-[9px] text-gray-500 font-bold">HOLD</span> 
+                            <div class="control-group scale-90"><div class="gb-pill"><span class="gb-pill-label">SEL</span></div></div>
+                            <span class="text-[9px] text-gray-500 mx-1">+ CLICK</span> 
+                            <div class="control-group scale-75"><div class="gb-btn" data-label="A">A</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- IPS SECTION -->
+            <section class="pl-4 md:pl-8 border-l-2 border-cyan-900/50">
+                <h2 class="text-3xl font-bold text-white mb-8 font-tech flex items-center">
+                    <span class="text-cyan-500 mr-3">02 //</span> IPS 3.0 GBA
+                </h2>
+                
+                <div class="glass-panel p-8 rounded-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
+                    
+                    <div class="flex items-center gap-6 mb-8 border-b border-gray-700 pb-6">
+                        <div class="w-16 h-16 rounded-lg bg-cyan-900/20 flex flex-col items-center justify-center border border-cyan-500/30 shadow-lg relative">
+                            <div class="absolute -bottom-2 w-8 h-1 bg-cyan-500 rounded-full blur-md"></div>
+                            <span class="text-[8px] text-gray-400 font-bold tracking-widest mb-1 opacity-50">GAME BOY</span>
+                            <span class="text-[10px] text-cyan-400 font-retro tracking-tighter">ADVANCE</span>
+                            <div class="mt-2 w-4 h-4 rounded-full bg-white/20 animate-ping"></div>
+                        </div>
+                        <div>
+                            <h3 class="text-cyan-400 font-bold text-xl">Area Touch Invisibile</h3>
+                            <p class="text-xs text-gray-400 max-w-sm">Il sensore è nascosto sotto il vetro, nella cornice inferiore, esattamente sopra il logo.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <ul class="space-y-4 text-sm">
+                            <li class="flex justify-between items-center bg-black/30 p-4 rounded-lg border border-white/5 hover:border-cyan-500/50 transition cursor-help" title="Tocca velocemente per cambiare luminosità">
+                                <span class="text-gray-300">Tocco Veloce</span>
+                                <span class="text-cyan-300 font-bold font-mono">LUM 1-15</span>
+                            </li>
+                            <li class="flex justify-between items-center bg-black/30 p-4 rounded-lg border border-white/5 hover:border-purple-500/50 transition cursor-help" title="Tieni premuto 3 secondi per aprire il menu">
+                                <span class="text-gray-300">Tocco Lungo (3s)</span>
+                                <span class="text-purple-300 font-bold font-mono">OSD MENU</span>
+                            </li>
+                        </ul>
+                        
+                        <div class="bg-black/30 p-4 rounded-lg border border-white/5">
+                            <h4 class="text-[10px] font-bold text-gray-500 uppercase mb-3 border-b border-gray-700 pb-2">Voci Menu Esclusive GBA</h4>
+                            <ul class="text-xs space-y-3 text-gray-400">
+                                <li class="flex justify-between">
+                                    <strong class="text-white">CLR (Color Mode)</strong>
+                                    <span>B/W • Green • Sepia</span>
+                                </li>
+                                <li class="text-[10px] text-gray-500 leading-tight">
+                                    Simula lo schermo del Game Boy originale (Verde) o del Pocket (Bianco e Nero) per un effetto nostalgia.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= SP CONTENT ================= -->
+        <div id="content-sp" class="content-section hidden space-y-12">
+            
+            <div class="glass-panel p-4 rounded-lg border-l-4 border-blue-500 bg-blue-900/10">
+                <h4 class="font-bold text-blue-400 text-sm font-tech uppercase mb-1">Ergonomia SP</h4>
+                <p class="text-xs text-gray-400">
+                    Sull'SP i tasti Start/Select sono molto piccoli e piatti. Per le combo "HOLD", usa l'unghia o la punta del dito applicando una pressione decisa al centro del tasto.
+                </p>
+            </div>
+
+            <!-- LED SECTION -->
+            <section class="pl-4 md:pl-8 border-l-2 border-blue-900/50">
+                <h2 class="text-3xl font-bold text-white mb-8 font-tech flex items-center">
+                    <span class="text-blue-500 mr-3">01 //</span> LED SP CONTROL
+                </h2>
+                
+                <div class="glass-panel p-6 rounded-xl mb-6 border-l-4 border-blue-500 flex justify-between items-center">
+                     <div>
+                        <h3 class="font-bold text-lg text-white">Menu & Reset</h3>
+                        <p class="text-xs text-gray-400">Tieni premuto finché i LED non lampeggiano.</p>
+                     </div>
+                     <div class="control-group bg-black/50 p-3 rounded-lg border border-blue-500/30">
+                        <div class="gb-btn" data-label="A">A</div> <span class="text-xs text-gray-500 mx-2">+</span> <div class="gb-btn" data-label="B">B</div>
+                        <span class="ml-3 text-[10px] text-blue-400 font-mono">2 SEC</span>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-lg">
+                    <ul class="grid md:grid-cols-2 gap-8 text-sm">
+                        <li>
+                            <span class="block text-blue-300 font-bold mb-3 border-b border-gray-700 pb-1">Luminosità LED</span>
+                            <div class="control-group bg-black/20 p-2 rounded justify-center">
+                                <span class="text-[9px] text-gray-500 mr-2 font-bold">HOLD</span> <span class="sp-btn-small hover:bg-white hover:text-black transition">SEL</span> <span class="text-[9px] text-gray-500 mx-2">+ CLICK</span> <div class="gb-btn scale-75" data-label="A">A</div>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="block text-pink-300 font-bold mb-3 border-b border-gray-700 pb-1">Colore LED</span>
+                            <div class="control-group bg-black/20 p-2 rounded justify-center">
+                                <span class="text-[9px] text-gray-500 mr-2 font-bold">HOLD</span> <span class="sp-btn-small hover:bg-white hover:text-black transition">STR</span> <span class="text-[9px] text-gray-500 mx-2">+ CLICK</span> <div class="gb-btn scale-75" data-label="A">A</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- IPS SECTION -->
+            <section class="pl-4 md:pl-8 border-l-2 border-cyan-900/50">
+                <h2 class="text-3xl font-bold text-white mb-8 font-tech flex items-center">
+                    <span class="text-cyan-500 mr-3">02 //</span> IPS 3.0 SP
+                </h2>
+                
+                <div class="glass-panel p-6 rounded-xl relative overflow-hidden">
+                    <div class="flex flex-col md:flex-row gap-8 relative z-10">
+                        <div class="flex-1">
+                            <h3 class="text-cyan-400 font-bold mb-3 pb-2 border-b border-gray-700">Tasto "Luminosità"</h3>
+                            <p class="text-xs text-gray-400 mb-4">Su GBA SP, tutto è controllato dal piccolo tasto centrale sopra le casse.</p>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-4 group">
+                                    <div class="sp-btn-small border-cyan-500 text-cyan-500 w-10 h-10 text-sm group-hover:scale-110 transition duration-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]">☀</div>
+                                    <div><strong class="text-sm text-white block">1 Click</strong> <span class="text-xs text-gray-400">Cicla 15 Livelli Luce</span></div>
+                                </div>
+                                <div class="flex items-center gap-4 group">
+                                    <div class="sp-btn-small border-purple-500 text-purple-500 w-10 h-10 text-[10px] group-hover:scale-110 transition duration-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]">MENU</div>
+                                    <div><strong class="text-sm text-white block">Hold 3s</strong> <span class="text-xs text-purple-300">Apre/Chiude OSD</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 bg-black/40 p-5 rounded-xl border border-white/5 relative">
+                            <div class="absolute top-2 right-2 text-cyan-900 text-4xl opacity-20"><i class="fas fa-gamepad"></i></div>
+                            <h3 class="text-white font-bold mb-3 text-sm uppercase tracking-wide">Navigazione "One-Button"</h3>
+                            <p class="text-[10px] text-gray-400 mb-4">Usi un solo tasto per fare tutto. Il ritmo è fondamentale.</p>
+                            
+                            <div class="space-y-3 relative">
+                                <div class="absolute left-[7px] top-2 bottom-2 w-[1px] bg-gray-700"></div>
+                                <div class="pl-5 relative">
+                                    <div class="absolute left-0 top-1 w-3 h-3 bg-gray-600 rounded-full"></div>
+                                    <strong class="text-gray-200 text-xs">Apri:</strong> <span class="text-[10px] text-gray-500">Tieni premuto finché non vedi il menu.</span>
+                                </div>
+                                <div class="pl-5 relative">
+                                    <div class="absolute left-0 top-1 w-3 h-3 bg-gray-600 rounded-full"></div>
+                                    <strong class="text-gray-200 text-xs">Scorri:</strong> <span class="text-[10px] text-gray-500">Clicca brevemente per scendere.</span>
+                                </div>
+                                <div class="pl-5 relative">
+                                    <div class="absolute left-0 top-1 w-3 h-3 bg-purple-600 rounded-full shadow-[0_0_5px_purple]"></div>
+                                    <strong class="text-purple-300 text-xs">Modifica:</strong> <span class="text-[10px] text-gray-500">Tieni premuto sulla voce per cambiarla.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <!-- TROUBLESHOOTING & AI -->
+        <div class="grid md:grid-cols-2 gap-8 pt-8 border-t border-gray-800 mt-8">
+            <section>
+                <h2 class="text-lg font-bold text-gray-400 mb-4 font-tech tracking-widest uppercase"><i class="fas fa-wrench mr-2"></i> Diagnostica Rapida</h2>
+                <div id="trouble-box" class="space-y-3"></div>
+            </section>
+            
+            <section id="ai-assistant-section" class="no-print">
+                <h2 class="text-lg font-bold text-gray-400 mb-4 font-tech tracking-widest uppercase"><i class="fas fa-robot mr-2"></i> RetroAvia AI</h2>
+                <div class="terminal-window p-1 bg-black">
+                    <div class="flex items-center px-3 py-1 bg-[#151515] border-b border-[#333]">
+                        <div class="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
+                        <div class="w-2 h-2 rounded-full bg-yellow-500 mr-1"></div>
+                        <div class="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                        <span class="text-[10px] text-green-500 font-mono">SYSTEM ONLINE</span>
+                    </div>
+                    <div id="chat-history" class="p-4 h-48 overflow-y-auto font-mono text-xs bg-[#0a0a0a]">
+                        <div class="ai-msg">> SISTEMA PRONTO.<br>> Chiedimi aiuto per GBC, GBA o SP.<br>> Funziono anche offline per domande frequenti.</div>
+                    </div>
+                    <div class="border-t border-[#333] p-2 flex bg-[#0a0a0a]">
+                        <input type="text" id="user-input" class="flex-1 bg-transparent border-none outline-none text-gray-200 font-mono text-xs placeholder-gray-700" placeholder="Digita comando o domanda...">
+                        <button id="send-btn" class="ml-2 px-3 py-1 bg-[#222] text-gray-400 text-[10px] rounded hover:bg-white/10 border border-gray-700 hover:border-white/30 transition">INVIA</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="mt-12 pt-8 border-t border-gray-800 text-center no-print opacity-50 hover:opacity-100 transition duration-500">
+            <div class="flex justify-center gap-6 mb-4">
+                <i class="fas fa-gamepad text-2xl text-gray-600 hover:text-white transition"></i>
+                <i class="fas fa-microchip text-2xl text-gray-600 hover:text-white transition"></i>
+                <i class="fas fa-code text-2xl text-gray-600 hover:text-white transition"></i>
+            </div>
+            <p class="text-[10px] text-gray-500 font-mono mb-2">ENGINEERED FOR</p>
+            <h3 class="text-lg font-retro text-gray-300">RETRO-AVIA</h3>
+            <p class="text-[10px] text-gray-600 font-mono mt-4">DIAMOND EDITION v5.0 | 2025</p>
+        </footer>
+
+    </main>
+
+    <!-- LOGIC -->
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai";
+
+        // APP STATE
+        let currentConsole = 'gbc'; 
+        const body = document.getElementById('body-app');
+        const modelName = document.getElementById('model-name');
+        const troubleBox = document.getElementById('trouble-box');
+
+        // OFFLINE KNOWLEDGE BASE (FALLBACK)
+        const offlineAnswers = {
+            'salv': "Per salvare su GBC (Custom Mode): Premi SELECT + L + A. Su GBA/SP il salvataggio è automatico allo spegnimento.",
+            'lum': "Per la luminosità schermo: Tocca il sensore (GBC/GBA) o premi il tasto luce (SP). Per i LED: Tieni premuto SELECT + A.",
+            'color': "Per cambiare colore LED: Tieni premuto START + A. Su GBC Custom Mode ricorda di salvare!",
+            'touch': "Se il touch non va: 1. Controlla che non tocchi metallo. 2. Prova a premere più forte. 3. Verifica che il filo non sia schiacciato.",
+            'osd': "Per aprire il menu OSD: GBC (Start+Select 3s), GBA (Touch Lungo), SP (Tasto Luce 3s).",
+            'batt': "Usa batterie di alta qualità (Litio 1.5V o Ricaricabili 2000mAh+). Le alcaline economiche non reggono gli schermi IPS."
+        };
+
+        const troubles = {
+            'gbc': `
+                <div class="bg-gray-900/40 p-3 rounded border border-gray-800 flex gap-3 hover:border-purple-500/50 transition">
+                    <span class="text-xl">💾</span>
+                    <div><h4 class="text-gray-300 text-xs font-bold">LED Reset?</h4><p class="text-[10px] text-gray-500">Hai salvato con SEL+L+A? È obbligatorio in Custom Mode.</p></div>
+                </div>
+                 <div class="bg-gray-900/40 p-3 rounded border border-gray-800 flex gap-3 hover:border-purple-500/50 transition">
+                    <span class="text-xl">👻</span>
+                    <div><h4 class="text-gray-300 text-xs font-bold">Ghosting?</h4><p class="text-[10px] text-gray-500">Attiva "FRM" (Frame Blend) nel menu OSD per risolvere le trasparenze.</p></div>
+                </div>
+            `,
+            'gba': `
+                <div class="bg-gray-900/40 p-3 rounded border border-gray-800 flex gap-3 hover:border-orange-500/50 transition">
+                    <span class="text-xl">⚡</span>
+                    <div><h4 class="text-gray-300 text-xs font-bold">Flickering?</h4><p class="text-[10px] text-gray-500">Batterie scariche. Il GBA con IPS richiede molta corrente (0.5A+).</p></div>
+                </div>
+                <div class="bg-gray-900/40 p-3 rounded border border-gray-800 flex gap-3 hover:border-orange-500/50 transition">
+                    <span class="text-xl">🎨</span>
+                    <div><h4 class="text-gray-300 text-xs font-bold">Schermo Verde?</h4><p class="text-[10px] text-gray-500">Controlla l'opzione "CLR" nel menu OSD, forse hai attivato il filtro Retro.</p></div>
+                </div>
+            `,
+            'sp': `
+                <div class="bg-gray-900/40 p-3 rounded border border-gray-800 flex gap-3 hover:border-blue-500/50 transition">
+                    <span class="text-xl">🔌</span>
+                    <div><h4 class="text-gray-300 text-xs font-bold">No Luce?</h4><p class="text-[10px] text-gray-500">Controlla il ribbon cable. Deve essere inserito fino alla linea bianca.</p></div>
+                </div>
+                <div class="bg-gray-900/40 p-3 rounded border border-gray-800 flex gap-3 hover:border-blue-500/50 transition">
+                    <span class="text-xl">💡</span>
+                    <div><h4 class="text-gray-300 text-xs font-bold">LED Spenti?</h4><p class="text-[10px] text-gray-500">Forse hai attivato la modalità "Stealth". Tieni premuto A+B per riattivare.</p></div>
+                </div>
+            `
+        };
+
+        window.switchConsole = function(consoleId) {
+            currentConsole = consoleId;
+            
+            // TABS UI
+            document.querySelectorAll('.console-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + consoleId).classList.add('active');
+
+            // SECTIONS TRANSITION
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            setTimeout(() => {
+                document.getElementById('content-' + consoleId).classList.add('active');
+            }, 50);
+
+            // THEME
+            body.className = `min-h-screen flex flex-col items-center pb-32 transition-colors duration-700 theme-${consoleId}`;
+            
+            // NAMES
+            let name = "GAME BOY COLOR";
+            if(consoleId === 'gba') name = "GAME BOY ADVANCE";
+            if(consoleId === 'sp') name = "GBA SP";
+            modelName.innerText = name;
+
+            // TROUBLES
+            troubleBox.innerHTML = troubles[consoleId];
+        }
+
+        // INIT
+        switchConsole('gbc');
+
+        // AI LOGIC
+        const apiKey = ""; 
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        let genAI, model;
+
+        try {
+            genAI = new GoogleGenerativeAI(apiKey);
+            model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-09-2025" });
+        } catch (e) { console.log("Offline Mode Active"); }
+
+        async function handleChat() {
+            const text = userInput.value.trim().toLowerCase();
+            if (!text) return;
+            appendMessage(`> ${text}`, 'user');
+            userInput.value = '';
+            
+            // 1. CHECK LOCAL KNOWLEDGE FIRST (Super Fast & Offline)
+            for (const [key, answer] of Object.entries(offlineAnswers)) {
+                if (text.includes(key)) {
+                    setTimeout(() => appendMessage(`> [OFFLINE]: ${answer}`, 'ai'), 200);
+                    return;
+                }
+            }
+
+            // 2. TRY GEMINI API
+            const loadingId = appendMessage('> ...', 'ai', true);
+            try {
+                if(!model) throw new Error("No API");
+                const prompt = `Sei l'esperto RetroAvia. Console: ${currentConsole.toUpperCase()}. Domanda: ${text}. Rispondi brevemente in italiano con tono tecnico ma amichevole.`;
+                const result = await model.generateContent(prompt);
+                removeMessage(loadingId);
+                appendMessage(`> ${result.response.text()}`, 'ai');
+            } catch (error) {
+                removeMessage(loadingId);
+                appendMessage(`> [OFFLINE]: Non riesco a connettermi al cervello centrale. Prova a chiedere "luminosità", "batteria" o "salvare".`, 'ai');
+            }
+        }
+
+        function appendMessage(text, sender, isLoading = false) {
+            const div = document.createElement('div');
+            div.className = sender === 'user' ? 'user-msg' : 'ai-msg';
+            if(isLoading) div.id = 'loading-msg';
+            div.innerHTML = text.replace(/\n/g, '<br>');
+            chatHistory.appendChild(div);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            return div.id;
+        }
+
+        function removeMessage(id) { const el = document.getElementById(id || 'loading-msg'); if(el) el.remove(); }
+
+        sendBtn.addEventListener('click', handleChat);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleChat(); });
+    </script>
+</body>
+</html>
